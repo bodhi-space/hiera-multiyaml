@@ -1,49 +1,54 @@
-require 'hiera/backend/yaml_backend'
-
 class Hiera
   module Backend
     class Multiyaml_backend
       # XXX: There is no option to override the datadir/datafile function logic
       # in Hiera::Backend, so there is a lot of copy paste code from
       # Hiera::Backend and Hiera::Backend::Yaml_backend instead of inheritance
-      # or just calling it from here. The Hiera architecture sucks big time. :-(
+      # or just calling it from here. The Hiera architecture sucks big dongs. :-(
 
       def initialize(cache=nil)
         require 'yaml'
-        Hiera.debug("Hiera MultiYAML backend starting")
+        Hiera.debug("Hiera MultiYAML-derp backend starting")
 
         @cache = cache || Filecache.new
       end
 
       def lookup(key, scope, order_override, resolution_type)
+        Hiera.debug("MultiYAML: Entering lookup method in MultiYAML backend!")
         answer = nil
 
         Config[:multiyaml][:backends].each do |backend|
           backend = backend.to_sym
 
+          Hiera.debug("MultiYAML: Starting with backend #{backend}")
+          #Backend.datasourcefiles(:yaml, scope, "yaml", order_override) do |source, yamlfile|
           Backend.datasources(scope, order_override) do |source|
-            Hiera.debug("Looking for data source #{source} in MultiYAML #{backend}")
-            yamlfile = File.join(Config[backend][:datadir], "#{source}.yaml")
+            Hiera.debug("MultiYAML: Looking for data source #{source} in MultiYAML #{backend}")
+            yamlfile = Backend.parse_answer(File.join(Config[backend][:datadir], "#{source}.yaml"), scope)
+            Hiera.debug("MultiYAML: Overriding yamlfile variable with #{yamlfile}")
 
             if not File.exist?(yamlfile)
-              Hiera.debug("Cannot find datafile #{yamlfile}, skipping")
+              Hiera.debug("MultiYAML: Cannot find datafile #{yamlfile}, skipping")
               next
             end
 
+            Hiera.debug("MultiYAML: Found datafile #{yamlfile}, hooray!")
             data = @cache.read_file(yamlfile, Hash) do |data|
-              YAML.load(data)
+              YAML.load(data) || {}
             end
 
             next if data.empty?
             next unless data.include?(key)
 
-            Hiera.debug("Found #{key} in #{backend}/#{source}")
+            Hiera.debug("MultiYAML: Found #{key} in #{backend}/#{source}")
 
             new_answer = Backend.parse_answer(data[key], scope)
             answer = merge_answer(resolution_type, new_answer, answer)
           end
+          Hiera.debug("MultiYAML: Done with backend #{backend}")
         end
 
+        Hiera.debug("MultiYAML: Leaving lookup method in MultiYAML backend!  Answer is #{answer}")
         return answer
       end
 
