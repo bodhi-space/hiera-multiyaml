@@ -40,10 +40,13 @@ class Hiera
             next if data.empty?
             next unless data.include?(key)
 
-            Hiera.debug("MultiYAML: Found #{key} in #{backend}/#{source}")
+            Hiera.debug("MultiYAML: Found #{key} in #{backend}/#{source} with resolution_type #{resolution_type}")
 
             new_answer = Backend.parse_answer(data[key], scope)
             answer = merge_answer(resolution_type, new_answer, answer)
+            if resolution_type == :priority
+              break
+            end
           end
           Hiera.debug("MultiYAML: Done with backend #{backend}")
         end
@@ -54,7 +57,7 @@ class Hiera
 
       def merge_answer(resolution_type, new_answer, answer)
         if not new_answer.nil?
-          case resolution_type
+          case resolution_type.is_a?(Hash) ? :hash : resolution_type
           when :array
             raise Exception, "Hiera type mismatch: expected Array and got #{new_answer.class}" unless new_answer.kind_of? Array or new_answer.kind_of? String
             answer ||= []
