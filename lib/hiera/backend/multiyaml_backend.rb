@@ -23,7 +23,7 @@ class Hiera
           Hiera.debug("MultiYAML: Starting with backend #{backend}")
           #Backend.datasourcefiles(:yaml, scope, "yaml", order_override) do |source, yamlfile|
           Backend.datasources(scope, order_override) do |source|
-            Hiera.debug("MultiYAML: Looking for data source #{source} in MultiYAML #{backend}")
+            Hiera.debug("MultiYAML: Looking for key #{key} data source #{source} in MultiYAML #{backend}")
             yamlfile = Backend.parse_answer(File.join(Config[backend][:datadir], "#{source}.yaml"), scope)
             Hiera.debug("MultiYAML: Overriding yamlfile variable with #{yamlfile}")
 
@@ -44,7 +44,7 @@ class Hiera
 
             new_answer = Backend.parse_answer(data[key], scope)
             answer = merge_answer(resolution_type, new_answer, answer)
-            if resolution_type == :priority
+            if resolution_type == :priority || resolution_type.nil?
               break
             end
           end
